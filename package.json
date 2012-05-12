@@ -1,0 +1,38 @@
+{
+  "name": "asana",
+  "description": "Asana API bindings for node.", 
+  "version": "0.0.1",
+  "homepage": "http://github.com/toots/node-asana",
+  "author": "Romain Beauxis <toots@rastageeks.org",
+  "repository":
+    {
+      "type":"git",
+      "url":"git://github.com/toots/node-asana.git"
+    },
+  "bugs":
+    {
+      "mail":"toots@rastageeks.org",
+      "url":"http://github.com/toots/node-asana/issues"
+    },
+  "main": "lib/node/asana.js",
+  "directories": 
+    { "lib":"./lib",
+      "test":"./test",   
+      "src":"./src" 
+    },
+  "engine": {"node": ">= 0.4.7", "npm": "1"},
+  "licences":
+    [
+      {
+        "type":"GPL3",
+        "url": "http://www.gnu.org/licenses/gpl-3.txt"
+      }
+    ],
+  "dependencies": {
+    "base64-js" : "0.0.2"
+  },
+  "devDependencies" : {
+    "browserify"    : "1.10.12",
+    "coffee-script" : "1.3.1"
+  }
+}

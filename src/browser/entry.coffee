@@ -1,0 +1,1 @@
+window.asana = require "./asana"
