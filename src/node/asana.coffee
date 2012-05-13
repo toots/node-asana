@@ -27,18 +27,18 @@ class module.exports.Asana
       @asana.params.port = opts.port || 80
 
     self = this
-    addClass = (dst, name, klass) ->
-      class dst[name] extends klass
+    addClass = (name, klass) ->
+      class self[name] extends klass
         asana: self.asana
 
         sync: ->
           self.sync.apply this, arguments
 
     # Add User class
-    addClass this, "User",  User
+    addClass "User",  User
     # Add Users collection
-    addClass this, "Users", Users
-    Users::model = this.User
+    addClass "Users", Users
+    @Users::model = this.User
 
   sync: (method, model, opts = {}) ->
     params  = model.asana[method]()

@@ -930,8 +930,8 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
         this.asana.params.port = opts.port || 80;
       }
       self = this;
-      addClass = function(dst, name, klass) {
-        return dst[name] = (function() {
+      addClass = function(name, klass) {
+        return self[name] = (function() {
 
           __extends(_Class, klass);
 
@@ -949,9 +949,9 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
 
         })();
       };
-      addClass(this, "User", User);
-      addClass(this, "Users", Users);
-      Users.prototype.model = this.User;
+      addClass("User", User);
+      addClass("Users", Users);
+      this.Users.prototype.model = this.User;
     }
 
     Asana.prototype.sync = function(method, model, opts) {
