@@ -839,7 +839,7 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
 (function() {
   var Asana, inspect;
 
-  Asana = require("./asana").Asana;
+  Asana = require("./asana");
 
   inspect = require("util").inspect;
 
@@ -1022,7 +1022,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
 
   })();
 
-  module.exports.Asana = Asana;
+  module.exports = Asana;
 
 }).call(this);
 

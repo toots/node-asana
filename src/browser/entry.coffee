@@ -1,1 +1,1 @@
-window.asana = require "./asana"
+window.Asana = require "./asana"

@@ -1,4 +1,4 @@
-{Asana}   = require "./asana"
+Asana     = require "./asana"
 {inspect} = require "util"
 
 console.dir = ->

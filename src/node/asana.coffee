@@ -96,4 +96,4 @@ class Asana
 
     req.end query
 
-module.exports.Asana = Asana
+module.exports = Asana
