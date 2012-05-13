@@ -8,14 +8,62 @@ module.exports = (src) ->
     sync  : src.sync
 
   class src.User extends Model
-    baseUrl: "/users"
+    urlRoot: "/users"
 
   class src.Users extends Collection
     url   : "/users"
     model : src.User
 
+  class src.Story extends Model
+    urlRoot: "/stories"
+
+  class src.Stories extends Collection
+    url   : "/stories"
+    model : src.Story
+
+  class src.Task extends Model
+    urlRoot: "/tasks"
+
+    initialize: ->
+      @stories      = new src.Stories
+      @stories.url  = =>
+        "/tasks/#{@id}/stories"
+
+      @projects     = new src.Projects
+      @projects.url = =>
+        "/tasks/#{@id}/projects"
+
+  class src.Tasks extends Collection
+    url   : "/tasks"
+    model : src.Task
+
+  class src.Project extends Model
+    urlRoot: "/projects"
+
+    initialize: ->
+      @tasks     = new src.Tasks
+      @tasks.url = =>
+        "/projects/#{@id}/tasks"
+
+  class src.Projects extends Collection
+    url   : "/projects"
+    model : src.Project
+
   class src.Workspace extends Model
-    baseUrl: "/workspaces"
+    urlRoot: "/workspaces"
+
+    initialize: ->
+      @users     = new src.Users
+      @users.url = =>
+        "/workspaces/#{@id}/users"
+
+      @tasks     = new src.Tasks
+      @tasks.url = =>
+        "/workspaces/#{@id}/tasks"
+
+      @projects     = new src.Projects
+      @projects.url = =>
+        "/workspaces/#{@id}/projects"
 
   class src.Workspaces extends Collection
     url   : "/workspaces"

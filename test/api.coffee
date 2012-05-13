@@ -4,53 +4,58 @@ Asana     = require "./asana"
 console.dir = ->
   console.log.apply this, (inspect(value, false, 3) for value in arguments)
 
+testObject = (name, object, opts, fn) ->
+  if typeof opts == "object"
+    fn = fn || ->
+  else
+    unless fn?
+      fn   = opts || ->
+      opts = {}
+
+  opts.success = ->
+      console.log "#{name}:"
+      console.dir object.toJSON()
+
+      fn()
+
+  opts.error = (model, err) ->
+      console.log "Error while fetching #{name}:"
+      console.dir err
+
+  object.fetch opts
+
 module.exports = (key, workspace) ->
   {user, Users, Workspaces}= new Asana
     key : key
 
-  user.fetch
-    success: ->
-      console.log "My user:"
-      console.dir user.toJSON()
-
-    error: (model, err) ->
-      console.log "Error while fetching my user:"
-      console.dir err
+  testObject "my user", user
 
   users = new Users
 
-  users.fetch
-    success: ->
-      console.log "Asana users:"
-      console.dir users.toJSON()
-
-      return unless users.models.length > 0
-
-      user = users.models[0]
-
-      user.fetch
-        asana:
-          fields : ["mame", "email"]
-
-        success: ->
-          console.log "One user:"
-          console.dir user.toJSON()
-
-        error: (model, err) ->
-          console.log "Error while fetching user:"
-          console.dir err
-
-    error: (model, err) ->
-      console.log "Error while fetching users:"
-      console.dir err
+  testObject "users", users, ->
+    testObject "one user", users.models[0]
 
   workspaces = new Workspaces
 
-  workspaces.fetch
-    success: ->
-      console.log "Asana workspaces:"
-      console.dir workspaces.toJSON()
+  testObject "workspaces", workspaces, ->
+    workspace = workspaces.models[0]
 
-    error: (model, err) ->
-      console.log "Error while fetching workspaces:"
-      console.dir err
+    testObject "one workspace", workspace, ->
+      testObject "workspace users",    workspace.users
+
+      testObject "workspace tasks",    workspace.tasks,
+        asana:
+          assignee: user.id
+
+      testObject "workspace projects", workspace.projects, ->
+        project = workspace.projects.models[0]
+
+        testObject "one project", project, ->
+          testObject "project tasks", project.tasks, ->
+            task = project.tasks.models[0]
+
+            testObject "one task from one project", task, ->
+              testObject "tasks' stories", task.stories, ->
+                story = task.stories.models[0]
+
+                testObject "one story", story

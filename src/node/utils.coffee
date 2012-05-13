@@ -42,13 +42,24 @@ module.exports.isEmpty = (obj) ->
 
   true
 
+# I/O options are prefixed by "opt_"
+# in GET mode. "method" option is not
+# supported yet..
+ioOptions = ["pretty", "fields", "expand"]
+optName = (name) ->
+  if ioOptions.indexOf(name) != -1
+    "opt_#{name}"
+  else
+    name
+
 # Custom querystring.stringify
 module.exports.querystringify = (arg) ->
   params = []
   for key, value of arg
-    if value.toString?
-      params.push "opt_#{key}=#{value.toString()}"
+    key = optName key
+    if value?.toString?
+      params.push "#{key}=#{value.toString()}"
     else
-      params.push "opts_#{key}=#{value}"
+      params.push "#{key}=#{value}"
 
   params.join "&"

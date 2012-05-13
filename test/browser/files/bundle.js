@@ -837,7 +837,7 @@ EventEmitter.prototype.listeners = function(type) {
 
 require.define("/api.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Asana, inspect;
+  var Asana, inspect, testObject;
 
   Asana = require("./asana");
 
@@ -856,57 +856,65 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
     }).apply(this, arguments));
   };
 
+  testObject = function(name, object, opts, fn) {
+    if (typeof opts === "object") {
+      fn = fn || function() {};
+    } else {
+      if (fn == null) {
+        fn = opts || function() {};
+        opts = {};
+      }
+    }
+    opts.success = function() {
+      console.log("" + name + ":");
+      console.dir(object.toJSON());
+      return fn();
+    };
+    opts.error = function(model, err) {
+      console.log("Error while fetching " + name + ":");
+      return console.dir(err);
+    };
+    return object.fetch(opts);
+  };
+
   module.exports = function(key, workspace) {
     var Users, Workspaces, user, users, workspaces, _ref;
     _ref = new Asana({
       key: key
     }), user = _ref.user, Users = _ref.Users, Workspaces = _ref.Workspaces;
-    user.fetch({
-      success: function() {
-        console.log("My user:");
-        return console.dir(user.toJSON());
-      },
-      error: function(model, err) {
-        console.log("Error while fetching my user:");
-        return console.dir(err);
-      }
-    });
+    testObject("my user", user);
     users = new Users;
-    users.fetch({
-      success: function() {
-        console.log("Asana users:");
-        console.dir(users.toJSON());
-        if (!(users.models.length > 0)) return;
-        user = users.models[0];
-        return user.fetch({
-          asana: {
-            fields: ["mame", "email"]
-          },
-          success: function() {
-            console.log("One user:");
-            return console.dir(user.toJSON());
-          },
-          error: function(model, err) {
-            console.log("Error while fetching user:");
-            return console.dir(err);
-          }
-        });
-      },
-      error: function(model, err) {
-        console.log("Error while fetching users:");
-        return console.dir(err);
-      }
+    testObject("users", users, function() {
+      return testObject("one user", users.models[0]);
     });
     workspaces = new Workspaces;
-    return workspaces.fetch({
-      success: function() {
-        console.log("Asana workspaces:");
-        return console.dir(workspaces.toJSON());
-      },
-      error: function(model, err) {
-        console.log("Error while fetching workspaces:");
-        return console.dir(err);
-      }
+    return testObject("workspaces", workspaces, function() {
+      workspace = workspaces.models[0];
+      return testObject("one workspace", workspace, function() {
+        testObject("workspace users", workspace.users);
+        testObject("workspace tasks", workspace.tasks, {
+          asana: {
+            assignee: user.id
+          }
+        });
+        return testObject("workspace projects", workspace.projects, function() {
+          var project;
+          project = workspace.projects.models[0];
+          return testObject("one project", project, function() {
+            return testObject("project tasks", project.tasks, function() {
+              var task;
+              task = project.tasks.models[0];
+              return testObject("one task from one project", task, function() {
+                return testObject("tasks' stories", task.stories, function() {
+                  var story;
+                  story = task.stories.models[0];
+                  return testObject("one story", story);
+                });
+              });
+            });
+          });
+        });
+      });
     });
   };
 
@@ -1030,7 +1038,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
 
 require.define("/utils.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var clone, fromByteArray, utf8ToBytes;
+  var clone, fromByteArray, ioOptions, optName, utf8ToBytes;
 
   fromByteArray = require("base64-js").fromByteArray;
 
@@ -1084,15 +1092,26 @@ require.define("/utils.coffee", function (require, module, exports, __dirname, _
     return true;
   };
 
+  ioOptions = ["pretty", "fields", "expand"];
+
+  optName = function(name) {
+    if (ioOptions.indexOf(name) !== -1) {
+      return "opt_" + name;
+    } else {
+      return name;
+    }
+  };
+
   module.exports.querystringify = function(arg) {
     var key, params, value;
     params = [];
     for (key in arg) {
       value = arg[key];
-      if (value.toString != null) {
-        params.push("opt_" + key + "=" + (value.toString()));
+      key = optName(key);
+      if ((value != null ? value.toString : void 0) != null) {
+        params.push("" + key + "=" + (value.toString()));
       } else {
-        params.push("opts_" + key + "=" + value);
+        params.push("" + key + "=" + value);
       }
     }
     return params.join("&");
@@ -3744,7 +3763,7 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
         User.__super__.constructor.apply(this, arguments);
       }
 
-      User.prototype.baseUrl = "/users";
+      User.prototype.urlRoot = "/users";
 
       return User;
 
@@ -3764,6 +3783,110 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
       return Users;
 
     })();
+    src.Story = (function() {
+
+      __extends(Story, Model);
+
+      function Story() {
+        Story.__super__.constructor.apply(this, arguments);
+      }
+
+      Story.prototype.urlRoot = "/stories";
+
+      return Story;
+
+    })();
+    src.Stories = (function() {
+
+      __extends(Stories, Collection);
+
+      function Stories() {
+        Stories.__super__.constructor.apply(this, arguments);
+      }
+
+      Stories.prototype.url = "/stories";
+
+      Stories.prototype.model = src.Story;
+
+      return Stories;
+
+    })();
+    src.Task = (function() {
+
+      __extends(Task, Model);
+
+      function Task() {
+        Task.__super__.constructor.apply(this, arguments);
+      }
+
+      Task.prototype.urlRoot = "/tasks";
+
+      Task.prototype.initialize = function() {
+        var _this = this;
+        this.stories = new src.Stories;
+        this.stories.url = function() {
+          return "/tasks/" + _this.id + "/stories";
+        };
+        this.projects = new src.Projects;
+        return this.projects.url = function() {
+          return "/tasks/" + _this.id + "/projects";
+        };
+      };
+
+      return Task;
+
+    })();
+    src.Tasks = (function() {
+
+      __extends(Tasks, Collection);
+
+      function Tasks() {
+        Tasks.__super__.constructor.apply(this, arguments);
+      }
+
+      Tasks.prototype.url = "/tasks";
+
+      Tasks.prototype.model = src.Task;
+
+      return Tasks;
+
+    })();
+    src.Project = (function() {
+
+      __extends(Project, Model);
+
+      function Project() {
+        Project.__super__.constructor.apply(this, arguments);
+      }
+
+      Project.prototype.urlRoot = "/projects";
+
+      Project.prototype.initialize = function() {
+        var _this = this;
+        this.tasks = new src.Tasks;
+        return this.tasks.url = function() {
+          return "/projects/" + _this.id + "/tasks";
+        };
+      };
+
+      return Project;
+
+    })();
+    src.Projects = (function() {
+
+      __extends(Projects, Collection);
+
+      function Projects() {
+        Projects.__super__.constructor.apply(this, arguments);
+      }
+
+      Projects.prototype.url = "/projects";
+
+      Projects.prototype.model = src.Project;
+
+      return Projects;
+
+    })();
     src.Workspace = (function() {
 
       __extends(Workspace, Model);
@@ -3772,7 +3895,23 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
         Workspace.__super__.constructor.apply(this, arguments);
       }
 
-      Workspace.prototype.baseUrl = "/workspaces";
+      Workspace.prototype.urlRoot = "/workspaces";
+
+      Workspace.prototype.initialize = function() {
+        var _this = this;
+        this.users = new src.Users;
+        this.users.url = function() {
+          return "/workspaces/" + _this.id + "/users";
+        };
+        this.tasks = new src.Tasks;
+        this.tasks.url = function() {
+          return "/workspaces/" + _this.id + "/tasks";
+        };
+        this.projects = new src.Projects;
+        return this.projects.url = function() {
+          return "/workspaces/" + _this.id + "/projects";
+        };
+      };
 
       return Workspace;
 
