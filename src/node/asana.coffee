@@ -1,17 +1,21 @@
 {b64,defaults,
  querystringify,
- isEmpty}           = require "./utils"
-{Collection, Model} = require "backbone"
+ isEmpty}        = require "./utils"
+Backbone         = require "backbone"
+addObjects       = require "./objects"
 
-class module.exports.Asana
+class Asana
   constructor: (opts) ->
     @asana =
       params :
-        auth    : b64 "#{opts.key}:"
-        path    : opts.path    || "/api/1.0"
-        host    : opts.host    || "app.asana.com"
-        scheme  : opts.scheme  || "https"
-        options : opts.options || {}
+        auth     : b64 "#{opts.key}:"
+        path     : opts.path     || "/api/1.0"
+        host     : opts.host     || "app.asana.com"
+        scheme   : opts.scheme   || "https"
+        options  : opts.options  || {}
+
+      # Backbone
+      Backbone   : opts.Backbone || Backbone
 
       # Default methods
       read : ->
@@ -26,7 +30,7 @@ class module.exports.Asana
       @asana.http = require "http"
       @asana.params.port = opts.port || 80
 
-    # Add models and collections
+    # Add object
     addObjects this
 
     # Add myself
@@ -92,50 +96,4 @@ class module.exports.Asana
 
     req.end query
 
-# Objects
-
-class User extends Model
-  baseUrl: "/users"
-
-class Users extends Collection
-  url: "/users"
-
-class Workspace extends Model
-  baseUrl: "/workspaces"
-
-class Workspaces extends Collection
-  url: "/workspaces"
-
-# Add objects
-
-addModel = (client, name, klass) ->
-  class client[name] extends klass
-    asana: client.asana
-
-    sync: ->
-      client.sync.apply this, arguments
-
-addCollection = (client, name, klass, model) ->
-  addModel client, name, klass
-  klass::model = client[model]
-
-addObjects = (client) ->
-  for name, klass of objects.models
-    addModel client, name, klass
-
-  for name, {klass, model} of objects.collections
-    addCollection client, name, klass, model
-
-objects =
-  models:
-    "User"      : User
-    "Workspace" : Workspace
-
-  collections:
-    "Users"     :
-      klass : Users
-      model : "User"
-
-    "Workspaces" :
-      klass : Workspaces
-      model : "Workspace"
+module.exports.Asana = Asana

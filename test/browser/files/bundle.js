@@ -916,14 +916,15 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
 
 require.define("/asana.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Collection, Model, User, Users, Workspace, Workspaces, addCollection, addModel, addObjects, b64, defaults, isEmpty, objects, querystringify, _ref, _ref2;
-  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+  var Asana, Backbone, addObjects, b64, defaults, isEmpty, querystringify, _ref;
 
   _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
 
-  _ref2 = require("backbone"), Collection = _ref2.Collection, Model = _ref2.Model;
+  Backbone = require("backbone");
 
-  module.exports.Asana = (function() {
+  addObjects = require("./objects");
+
+  Asana = (function() {
 
     function Asana(opts) {
       this.asana = {
@@ -934,6 +935,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
           scheme: opts.scheme || "https",
           options: opts.options || {}
         },
+        Backbone: opts.Backbone || Backbone,
         read: function() {
           return {
             method: "GET",
@@ -1020,119 +1022,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
 
   })();
 
-  User = (function() {
-
-    __extends(User, Model);
-
-    function User() {
-      User.__super__.constructor.apply(this, arguments);
-    }
-
-    User.prototype.baseUrl = "/users";
-
-    return User;
-
-  })();
-
-  Users = (function() {
-
-    __extends(Users, Collection);
-
-    function Users() {
-      Users.__super__.constructor.apply(this, arguments);
-    }
-
-    Users.prototype.url = "/users";
-
-    return Users;
-
-  })();
-
-  Workspace = (function() {
-
-    __extends(Workspace, Model);
-
-    function Workspace() {
-      Workspace.__super__.constructor.apply(this, arguments);
-    }
-
-    Workspace.prototype.baseUrl = "/workspaces";
-
-    return Workspace;
-
-  })();
-
-  Workspaces = (function() {
-
-    __extends(Workspaces, Collection);
-
-    function Workspaces() {
-      Workspaces.__super__.constructor.apply(this, arguments);
-    }
-
-    Workspaces.prototype.url = "/workspaces";
-
-    return Workspaces;
-
-  })();
-
-  addModel = function(client, name, klass) {
-    return client[name] = (function() {
-
-      __extends(_Class, klass);
-
-      function _Class() {
-        _Class.__super__.constructor.apply(this, arguments);
-      }
-
-      _Class.prototype.asana = client.asana;
-
-      _Class.prototype.sync = function() {
-        return client.sync.apply(this, arguments);
-      };
-
-      return _Class;
-
-    })();
-  };
-
-  addCollection = function(client, name, klass, model) {
-    addModel(client, name, klass);
-    return klass.prototype.model = client[model];
-  };
-
-  addObjects = function(client) {
-    var klass, model, name, _ref3, _ref4, _ref5, _results;
-    _ref3 = objects.models;
-    for (name in _ref3) {
-      klass = _ref3[name];
-      addModel(client, name, klass);
-    }
-    _ref4 = objects.collections;
-    _results = [];
-    for (name in _ref4) {
-      _ref5 = _ref4[name], klass = _ref5.klass, model = _ref5.model;
-      _results.push(addCollection(client, name, klass, model));
-    }
-    return _results;
-  };
-
-  objects = {
-    models: {
-      "User": User,
-      "Workspace": Workspace
-    },
-    collections: {
-      "Users": {
-        klass: Users,
-        model: "User"
-      },
-      "Workspaces": {
-        klass: Workspaces,
-        model: "Workspace"
-      }
-    }
-  };
+  module.exports.Asana = Asana;
 
 }).call(this);
 
@@ -3804,6 +3694,104 @@ require.define("/node_modules/underscore/underscore.js", function (require, modu
   // Extracts the result from a wrapped and chained object.
   wrapper.prototype.value = function() {
     return this._wrapped;
+  };
+
+}).call(this);
+
+});
+
+require.define("/objects.coffee", function (require, module, exports, __dirname, __filename) {
+(function() {
+  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+
+  module.exports = function(src) {
+    var Collection, Model;
+    Model = (function() {
+
+      __extends(Model, src.asana.Backbone.Model);
+
+      function Model() {
+        Model.__super__.constructor.apply(this, arguments);
+      }
+
+      Model.prototype.asana = src.asana;
+
+      Model.prototype.sync = src.sync;
+
+      return Model;
+
+    })();
+    Collection = (function() {
+
+      __extends(Collection, src.asana.Backbone.Collection);
+
+      function Collection() {
+        Collection.__super__.constructor.apply(this, arguments);
+      }
+
+      Collection.prototype.asana = src.asana;
+
+      Collection.prototype.sync = src.sync;
+
+      return Collection;
+
+    })();
+    src.User = (function() {
+
+      __extends(User, Model);
+
+      function User() {
+        User.__super__.constructor.apply(this, arguments);
+      }
+
+      User.prototype.baseUrl = "/users";
+
+      return User;
+
+    })();
+    src.Users = (function() {
+
+      __extends(Users, Collection);
+
+      function Users() {
+        Users.__super__.constructor.apply(this, arguments);
+      }
+
+      Users.prototype.url = "/users";
+
+      Users.prototype.model = src.User;
+
+      return Users;
+
+    })();
+    src.Workspace = (function() {
+
+      __extends(Workspace, Model);
+
+      function Workspace() {
+        Workspace.__super__.constructor.apply(this, arguments);
+      }
+
+      Workspace.prototype.baseUrl = "/workspaces";
+
+      return Workspace;
+
+    })();
+    return src.Workspaces = (function() {
+
+      __extends(Workspaces, Collection);
+
+      function Workspaces() {
+        Workspaces.__super__.constructor.apply(this, arguments);
+      }
+
+      Workspaces.prototype.url = "/workspaces";
+
+      Workspaces.prototype.model = src.Workspace;
+
+      return Workspaces;
+
+    })();
   };
 
 }).call(this);
