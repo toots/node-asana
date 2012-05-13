@@ -837,7 +837,7 @@ EventEmitter.prototype.listeners = function(type) {
 
 require.define("/api.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Asana, inspect, saveObject, testObject;
+  var Asana, inspect, runTests, saveObject, testObject;
 
   Asana = require("./asana");
 
@@ -898,12 +898,9 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
     return object.save(null, opts);
   };
 
-  module.exports = function(key, workspaceID) {
-    var Users, Workspace, Workspaces, user, users, workspace, workspaces, _ref;
-    _ref = new Asana({
-      key: key
-    }), user = _ref.user, Users = _ref.Users, Workspaces = _ref.Workspaces, Workspace = _ref.Workspace;
-    testObject("my user", user);
+  runTests = function(asana, workspaceID) {
+    var Task, Users, Workspace, Workspaces, user, users, workspace, workspaces;
+    user = asana.user, Users = asana.Users, Task = asana.Task, Workspaces = asana.Workspaces, Workspace = asana.Workspace;
     users = new Users;
     testObject("users", users, function() {
       return testObject("one user", users.models[0]);
@@ -942,10 +939,39 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
       id: workspaceID
     });
     return testObject("Test workspace", workspace, function() {
+      var originalName, task;
+      originalName = workspace.get("name");
       workspace.set({
         name: "Updated test workspace"
       });
-      return saveObject("Test workspace", workspace);
+      saveObject("Test workspace", workspace, function() {
+        workspace.set({
+          name: originalName
+        });
+        return saveObject("Test workspace", workspace);
+      });
+      task = new Task({
+        assignee: user,
+        followers: [user],
+        name: "Test task (" + (Math.random().toString(36).substring(7)) + ")",
+        workspace: workspace
+      });
+      return saveObject("new task", task, function() {
+        task.set({
+          completed: true
+        });
+        return saveObject("new task", task);
+      });
+    });
+  };
+
+  module.exports = function(key, workspaceID) {
+    var asana;
+    asana = new Asana({
+      key: key
+    });
+    return testObject("my user", asana.user, function() {
+      return runTests(asana, workspaceID);
     });
   };
 
@@ -955,9 +981,9 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
 
 require.define("/asana.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Asana, Backbone, addObjects, b64, clone, defaults, isEmpty, querystringify, _ref;
+  var Asana, Backbone, addObjects, b64, clone, defaults, idify, isEmpty, querystringify, _ref;
 
-  _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, clone = _ref.clone, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
+  _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, clone = _ref.clone, idify = _ref.idify, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
 
   Backbone = require("backbone");
 
@@ -975,6 +1001,12 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
           options: opts.options || {}
         },
         Backbone: opts.Backbone || Backbone,
+        savedAttributes: function(method, model) {
+          var query;
+          query = clone(model.attributes);
+          delete query.id;
+          return query;
+        },
         read: function() {
           return {
             method: "GET",
@@ -982,13 +1014,17 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
           };
         },
         update: function(model) {
-          var query;
-          query = clone(model.attributes);
-          delete query.id;
           return {
             method: "PUT",
             expects: 200,
-            query: query
+            query: idify(model.asana.savedAttributes("PUT", model))
+          };
+        },
+        create: function(model) {
+          return {
+            method: "POST",
+            expects: 201,
+            query: idify(model.asana.savedAttributes("POST", model))
           };
         }
       };
@@ -1085,7 +1121,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
 
 require.define("/utils.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var clone, fromByteArray, ioOptions, optName, utf8ToBytes;
+  var clone, fromByteArray, idify, ioOptions, optName, utf8ToBytes;
 
   fromByteArray = require("base64-js").fromByteArray;
 
@@ -1114,7 +1150,14 @@ require.define("/utils.coffee", function (require, module, exports, __dirname, _
     dst = {};
     for (key in src) {
       value = src[key];
-      if (typeof value === "object") value = clone(value);
+      if (value == null) continue;
+      if (typeof value === "object") {
+        if (value instanceof Array) {
+          value = value.slice();
+        } else {
+          value = clone(value);
+        }
+      }
       dst[key] = value;
     }
     return dst;
@@ -1129,6 +1172,27 @@ require.define("/utils.coffee", function (require, module, exports, __dirname, _
       res[key] = value;
     }
     return res;
+  };
+
+  module.exports.idify = idify = function(src) {
+    var element, key, res, value, _i, _len;
+    if (typeof src !== "object") return src;
+    if (src.id != null) return src.id;
+    for (key in src) {
+      value = src[key];
+      if (typeof value !== "object") continue;
+      if (value instanceof Array) {
+        res = [];
+        for (_i = 0, _len = value.length; _i < _len; _i++) {
+          element = value[_i];
+          res.push(idify(element));
+        }
+        src[key] = res;
+      } else {
+        src[key] = idify(value);
+      }
+    }
+    return src;
   };
 
   module.exports.isEmpty = function(obj) {
@@ -3768,7 +3832,10 @@ require.define("/node_modules/underscore/underscore.js", function (require, modu
 
 require.define("/objects.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
+  var clone;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+
+  clone = require("./utils").clone;
 
   module.exports = function(src) {
     var Collection, Model;
@@ -3870,6 +3937,19 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
 
       Task.prototype.initialize = function() {
         var _this = this;
+        this.asana = clone(this.asana);
+        this.asana.savedAttributes = function(method, model) {
+          var res;
+          res = clone(model.attributes);
+          delete res.id;
+          delete res.created_at;
+          delete res.completed_at;
+          if (method !== "POST") delete res.followers;
+          delete res.modified_at;
+          delete res.projects;
+          if (method !== "POST") delete res.workspace;
+          return res;
+        };
         this.stories = new src.Stories;
         this.stories.url = function() {
           return "/tasks/" + _this.id + "/stories";

@@ -1,5 +1,5 @@
 {b64,defaults,clone,
- querystringify,
+ idify,querystringify,
  isEmpty}        = require "./utils"
 Backbone         = require "backbone"
 addObjects       = require "./objects"
@@ -17,18 +17,29 @@ class Asana
       # Backbone
       Backbone: opts.Backbone || Backbone
 
+      # Default export attributes function, 
+      # used for saving.
+      savedAttributes: (method, model) ->
+        query = clone model.attributes
+        delete query.id
+        query
+
       # Default methods
       read: ->
         method  : "GET"
         expects : 200
 
       update: (model) ->
-        query = clone model.attributes
-        delete query.id
-
         method  : "PUT"
         expects : 200
-        query   : query
+        query   :
+          idify model.asana.savedAttributes("PUT", model)
+
+      create: (model) ->
+        method  : "POST"
+        expects : 201
+        query   :
+          idify model.asana.savedAttributes("POST", model)
 
     # For browserify..
     if @asana.params.scheme == "https"

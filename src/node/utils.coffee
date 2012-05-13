@@ -20,8 +20,13 @@ module.exports.clone = clone = (src) ->
   dst = {}
 
   for key, value of src
+    continue unless value?
+
     if typeof value == "object"
-      value = clone(value)
+      if value instanceof Array
+        value = value.slice()
+      else
+        value = clone(value)
 
     dst[key] = value
 
@@ -34,6 +39,25 @@ module.exports.defaults = (defaults, src = {}) ->
     res[key] = value
 
   res
+
+module.exports.idify = idify = (src) ->
+  return src unless typeof src == "object"
+
+  return src.id if src.id?
+
+  for key, value of src
+    continue unless typeof value == "object"
+
+    if value instanceof Array
+      res = []
+      for element in value
+        res.push idify(element)
+
+      src[key] = res
+    else
+      src[key] = idify value
+
+  src
 
 # For objects only!
 module.exports.isEmpty = (obj) ->

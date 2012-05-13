@@ -44,13 +44,11 @@ saveObject = (name, object, opts, fn) ->
 
   object.save null, opts
 
-module.exports = (key, workspaceID) ->
-  {user, Users, 
+runTests = (asana, workspaceID) ->
+  {user, Users,
+    Task,
     Workspaces,
-    Workspace}  = new Asana
-    key : key
-
-  testObject "my user", user
+    Workspace}  = asana
 
   users = new Users
 
@@ -87,6 +85,28 @@ module.exports = (key, workspaceID) ->
     id : workspaceID
 
   testObject "Test workspace", workspace, ->
+    originalName = workspace.get "name"
     workspace.set name: "Updated test workspace"
 
-    saveObject "Test workspace", workspace
+    saveObject "Test workspace", workspace, ->
+      workspace.set name: originalName
+
+      saveObject "Test workspace", workspace
+
+    task = new Task
+      assignee  :  user
+      followers : [user]
+      name      : "Test task (#{Math.random().toString(36).substring(7)})"
+      workspace : workspace
+
+    saveObject "new task", task, ->
+      task.set completed: true
+
+      saveObject "new task", task
+
+module.exports = (key, workspaceID) ->
+  asana = new Asana
+    key : key
+
+  testObject "my user", asana.user, ->
+    runTests asana, workspaceID

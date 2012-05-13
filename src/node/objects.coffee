@@ -1,3 +1,5 @@
+{clone} = require "./utils"
+
 module.exports = (src) ->
   class Model extends src.asana.Backbone.Model
     asana : src.asana
@@ -25,6 +27,19 @@ module.exports = (src) ->
     urlRoot: "/tasks"
 
     initialize: ->
+      @asana = clone @asana
+      @asana.savedAttributes = (method, model) ->
+        res = clone model.attributes
+        delete res.id
+        delete res.created_at
+        delete res.completed_at
+        delete res.followers unless method == "POST"
+        delete res.modified_at
+        delete res.projects
+        delete res.workspace unless method == "POST"
+
+        res
+
       @stories      = new src.Stories
       @stories.url  = =>
         "/tasks/#{@id}/stories"
