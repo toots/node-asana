@@ -14,7 +14,8 @@ call = (command, fn) ->
 build = (fn) ->
   call "coffee -c -o lib/node/ src/node/*.coffee", ->
     call "rm -rf tmp && mkdir tmp && cp src/node/*.coffee src/browser/*.coffee tmp && browserify tmp/entry.coffee -o lib/browser/asana.js", ->
-      call "rm -rf tmp && mkdir tmp && cp src/node/*.coffee test/*.coffee test/browser/wrapper.coffee tmp && browserify tmp/wrapper.coffee -o test/browser/files/bundle.js", fn
+      call "minifyjs lib/browser/asana.js > lib/browser/asana.min.js", ->
+        call "rm -rf tmp && mkdir tmp && cp src/node/*.coffee test/*.coffee test/browser/wrapper.coffee tmp && browserify tmp/wrapper.coffee -o test/browser/files/bundle.js", fn
 
 task 'build', 'Compile coffee scripts into plain Javascript files', ->
   build ->
