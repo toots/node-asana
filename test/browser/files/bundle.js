@@ -857,12 +857,12 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
   };
 
   module.exports = function(key, workspace) {
-    var asana, users;
-    asana = new Asana({
+    var Users, Workspaces, users, workspaces, _ref;
+    _ref = new Asana({
       key: key
-    });
-    users = new asana.Users;
-    return users.fetch({
+    }), Users = _ref.Users, Workspaces = _ref.Workspaces;
+    users = new Users;
+    users.fetch({
       success: function() {
         var user;
         console.log("Asana users:");
@@ -888,6 +888,17 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
         return console.dir(err);
       }
     });
+    workspaces = new Workspaces;
+    return workspaces.fetch({
+      success: function() {
+        console.log("Asana workspaces:");
+        return console.dir(workspaces.toJSON());
+      },
+      error: function(model, err) {
+        console.log("Error while fetching workspaces:");
+        return console.dir(err);
+      }
+    });
   };
 
 }).call(this);
@@ -896,7 +907,7 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
 
 require.define("/asana.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Collection, Model, User, Users, b64, defaults, isEmpty, querystringify, _ref, _ref2;
+  var Collection, Model, User, Users, Workspace, Workspaces, addCollection, addModel, addObjects, b64, defaults, isEmpty, objects, querystringify, _ref, _ref2;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
 
   _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
@@ -906,7 +917,6 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
   module.exports.Asana = (function() {
 
     function Asana(opts) {
-      var addClass, self;
       this.asana = {
         params: {
           auth: b64("" + opts.key + ":"),
@@ -929,29 +939,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
         this.asana.http = require("http");
         this.asana.params.port = opts.port || 80;
       }
-      self = this;
-      addClass = function(name, klass) {
-        return self[name] = (function() {
-
-          __extends(_Class, klass);
-
-          function _Class() {
-            _Class.__super__.constructor.apply(this, arguments);
-          }
-
-          _Class.prototype.asana = self.asana;
-
-          _Class.prototype.sync = function() {
-            return self.sync.apply(this, arguments);
-          };
-
-          return _Class;
-
-        })();
-      };
-      addClass("User", User);
-      addClass("Users", Users);
-      this.Users.prototype.model = this.User;
+      addObjects(this);
     }
 
     Asana.prototype.sync = function(method, model, opts) {
@@ -1048,6 +1036,92 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
     return Users;
 
   })();
+
+  Workspace = (function() {
+
+    __extends(Workspace, Model);
+
+    function Workspace() {
+      Workspace.__super__.constructor.apply(this, arguments);
+    }
+
+    Workspace.prototype.baseUrl = "/workspaces";
+
+    return Workspace;
+
+  })();
+
+  Workspaces = (function() {
+
+    __extends(Workspaces, Collection);
+
+    function Workspaces() {
+      Workspaces.__super__.constructor.apply(this, arguments);
+    }
+
+    Workspaces.prototype.url = "/workspaces";
+
+    return Workspaces;
+
+  })();
+
+  addModel = function(client, name, klass) {
+    return client[name] = (function() {
+
+      __extends(_Class, klass);
+
+      function _Class() {
+        _Class.__super__.constructor.apply(this, arguments);
+      }
+
+      _Class.prototype.asana = client.asana;
+
+      _Class.prototype.sync = function() {
+        return client.sync.apply(this, arguments);
+      };
+
+      return _Class;
+
+    })();
+  };
+
+  addCollection = function(client, name, klass, model) {
+    addModel(client, name, klass);
+    return klass.prototype.model = client[model];
+  };
+
+  addObjects = function(client) {
+    var klass, model, name, _ref3, _ref4, _ref5, _results;
+    _ref3 = objects.models;
+    for (name in _ref3) {
+      klass = _ref3[name];
+      addModel(client, name, klass);
+    }
+    _ref4 = objects.collections;
+    _results = [];
+    for (name in _ref4) {
+      _ref5 = _ref4[name], klass = _ref5.klass, model = _ref5.model;
+      _results.push(addCollection(client, name, klass, model));
+    }
+    return _results;
+  };
+
+  objects = {
+    models: {
+      "User": User,
+      "Workspace": Workspace
+    },
+    collections: {
+      "Users": {
+        klass: Users,
+        model: "User"
+      },
+      "Workspaces": {
+        klass: Workspaces,
+        model: "Workspace"
+      }
+    }
+  };
 
 }).call(this);
 

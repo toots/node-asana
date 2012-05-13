@@ -26,19 +26,8 @@ class module.exports.Asana
       @asana.http = require "http"
       @asana.params.port = opts.port || 80
 
-    self = this
-    addClass = (name, klass) ->
-      class self[name] extends klass
-        asana: self.asana
-
-        sync: ->
-          self.sync.apply this, arguments
-
-    # Add User class
-    addClass "User",  User
-    # Add Users collection
-    addClass "Users", Users
-    @Users::model = this.User
+    # Add models and collections
+    addObjects this
 
   sync: (method, model, opts = {}) ->
     params  = model.asana[method]()
@@ -99,8 +88,50 @@ class module.exports.Asana
 
     req.end query
 
+# Objects
+
 class User extends Model
-  baseUrl : "/users"
+  baseUrl: "/users"
 
 class Users extends Collection
-  url : "/users"
+  url: "/users"
+
+class Workspace extends Model
+  baseUrl: "/workspaces"
+
+class Workspaces extends Collection
+  url: "/workspaces"
+
+# Add objects
+
+addModel = (client, name, klass) ->
+  class client[name] extends klass
+    asana: client.asana
+
+    sync: ->
+      client.sync.apply this, arguments
+
+addCollection = (client, name, klass, model) ->
+  addModel client, name, klass
+  klass::model = client[model]
+
+addObjects = (client) ->
+  for name, klass of objects.models
+    addModel client, name, klass
+
+  for name, {klass, model} of objects.collections
+    addCollection client, name, klass, model
+
+objects =
+  models:
+    "User"      : User
+    "Workspace" : Workspace
+
+  collections:
+    "Users"     :
+      klass : Users
+      model : "User"
+
+    "Workspaces" :
+      klass : Workspaces
+      model : "Workspace"
