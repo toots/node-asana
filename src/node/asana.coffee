@@ -1,51 +1,72 @@
 {b64,defaults,
  querystringify,
- isEmpty}        = require "./utils"
+ isEmpty}           = require "./utils"
+{Collection, Model} = require "backbone"
 
 class module.exports.Asana
   constructor: (opts) ->
-    @auth    = b64 "#{opts.key}:"
-    @version = "1.0" # Read only for now!
-    @path    = opts.path    || "/api/#{@version}"
-    @host    = opts.host    || "app.asana.com"
-    @scheme  = opts.scheme  || "https"
-    @options = opts.options || {}
+    @asana =
+      params :
+        auth    : b64 "#{opts.key}:"
+        path    : opts.path    || "/api/1.0"
+        host    : opts.host    || "app.asana.com"
+        scheme  : opts.scheme  || "https"
+        options : opts.options || {}
+
+      # Default methods
+      read : ->
+        method  : "GET"
+        expects : 200
 
     # For browserify..
-    if @scheme == "https"
-      @http = require "https"
-      @port = opts.port || 443
+    if @asana.params.scheme == "https"
+      @asana.http = require "https"
+      @asana.params.port = opts.port || 443
     else
-      @http = require "http"
-      @port = opts.port || 80
+      @asana.http = require "http"
+      @asana.params.port = opts.port || 80
+
+    self = this
+    addClass = (dst, name, klass) ->
+      class dst[name] extends klass
+        asana: self.asana
+
+        sync: ->
+          self.sync.apply this, arguments
 
     # Add User class
-    this.User = defaults this, User
+    addClass this, "User",  User
+    # Add Users collection
+    addClass this, "Users", Users
+    Users::model = this.User
 
-  request: (opts, options, fn) ->
-    unless fn?
-      fn      = options
-      options = {}
+  sync: (method, model, opts = {}) ->
+    params  = model.asana[method]()
 
-    expects = opts.expects || 200
-    query   = opts.query
-    options = defaults @options, options
+    url    = if typeof @url == "function" then @url() else @url
+    expects = params.expects || 200
+    query   = params.query
+    error   = opts.error   || ->
+    success = opts.success || ->
+
+    # Get options but remove error and success..
+    options = defaults @asana.params.options, opts.asana
 
     headers =
       "Accept"               : "application/json"
-      "Authorization"        : "Basic #{@auth}"
+      "Authorization"        : "Basic #{@asana.params.auth}"
 
-    opts =
-      host    : @host
-      port    : @port
-      method  : opts.method || "GET"
-      path    : "#{@path}#{opts.path}"
+    http_opts =
+      host    : @asana.params.host
+      port    : @asana.params.port
+      method  : params.method || "GET"
+      path    : "#{@asana.params.path}#{url}"
       headers : headers
-      scheme  : @scheme
+      scheme  : @asana.params.scheme
 
     unless isEmpty options
-      if opts.method == "GET"
-        opts.path = "#{opts.path}?#{querystringify(options)}"
+      if http_opts.method == "GET"
+        http_opts.path = "#{http_opts.path}?#{querystringify(options)}"
       else
         query ||= {}
         query.options = options
@@ -56,7 +77,7 @@ class module.exports.Asana
       opts.headers["Content-Type"]   = "application/json"
       opts.headers["Content-Length"] = query.length
 
-    req = @http.request opts, (res) ->
+    req = @asana.http.request http_opts, (res) ->
       data = ""
       res.on "data", (buf) -> data += buf
       res.on "end", ->
@@ -68,16 +89,18 @@ class module.exports.Asana
           err =
             code     : res.statusCode
             headers  : res.headers
-            options  : opts
+            options  : http_opts
             query    : query
             response : data
 
-          return fn err, null
+          return error model, err
 
-        fn null, data.data
+        success data.data, res.statusCode, res
 
     req.end query
 
-class User
-  @all: (opts, fn) ->
-    @request { path: "/users" }, opts, fn
+class User extends Model
+  baseUrl : "/users"
+
+class Users extends Collection
+  url : "/users"

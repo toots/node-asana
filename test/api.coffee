@@ -8,11 +8,29 @@ module.exports = (key, workspace) ->
   asana = new Asana
     key : key
 
-  asana.User.all { pretty: true, fields: ["name", "email"] }, (err, users) ->
-    if err?
-      console.log "Error while fetching all asana users:"
-      return console.dir err
+  users = new asana.Users
 
-    console.log "Asana users:"
-    console.log users
+  users.fetch
+    success: ->
+      console.log "Asana users:"
+      console.dir users.toJSON()
 
+      return unless users.models.length > 0
+
+      user = users.models[0]
+
+      user.fetch
+        asana:
+          fields : ["mame", "email"]
+
+        success: ->
+          console.log "One user:"
+          console.dir user.toJSON()
+
+        error: (model, err) ->
+          console.log "Error while fetching user:"
+          console.dir err
+
+    error: (model, err) ->
+      console.log "Error while fetching users:"
+      console.dir err
