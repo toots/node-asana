@@ -837,7 +837,7 @@ EventEmitter.prototype.listeners = function(type) {
 
 require.define("/api.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Asana, inspect, testObject;
+  var Asana, inspect, saveObject, testObject;
 
   Asana = require("./asana");
 
@@ -877,18 +877,40 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
     return object.fetch(opts);
   };
 
-  module.exports = function(key, workspace) {
-    var Users, Workspaces, user, users, workspaces, _ref;
+  saveObject = function(name, object, opts, fn) {
+    if (typeof opts === "object") {
+      fn = fn || function() {};
+    } else {
+      if (fn == null) {
+        fn = opts || function() {};
+        opts = {};
+      }
+    }
+    opts.success = function() {
+      console.log("" + name + " Saved:");
+      console.dir(object.toJSON());
+      return fn();
+    };
+    opts.error = function(model, err) {
+      console.log("Error while save " + name + ":");
+      return console.dir(err);
+    };
+    return object.save(null, opts);
+  };
+
+  module.exports = function(key, workspaceID) {
+    var Users, Workspace, Workspaces, user, users, workspace, workspaces, _ref;
     _ref = new Asana({
       key: key
-    }), user = _ref.user, Users = _ref.Users, Workspaces = _ref.Workspaces;
+    }), user = _ref.user, Users = _ref.Users, Workspaces = _ref.Workspaces, Workspace = _ref.Workspace;
     testObject("my user", user);
     users = new Users;
     testObject("users", users, function() {
       return testObject("one user", users.models[0]);
     });
     workspaces = new Workspaces;
-    return testObject("workspaces", workspaces, function() {
+    testObject("workspaces", workspaces, function() {
+      var workspace;
       workspace = workspaces.models[0];
       return testObject("one workspace", workspace, function() {
         testObject("workspace users", workspace.users);
@@ -916,6 +938,15 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
         });
       });
     });
+    workspace = new Workspace({
+      id: workspaceID
+    });
+    return testObject("Test workspace", workspace, function() {
+      workspace.set({
+        name: "Updated test workspace"
+      });
+      return saveObject("Test workspace", workspace);
+    });
   };
 
 }).call(this);
@@ -924,9 +955,9 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
 
 require.define("/asana.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Asana, Backbone, addObjects, b64, defaults, isEmpty, querystringify, _ref;
+  var Asana, Backbone, addObjects, b64, clone, defaults, isEmpty, querystringify, _ref;
 
-  _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
+  _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, clone = _ref.clone, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
 
   Backbone = require("backbone");
 
@@ -949,6 +980,16 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
             method: "GET",
             expects: 200
           };
+        },
+        update: function(model) {
+          var query;
+          query = clone(model.attributes);
+          delete query.id;
+          return {
+            method: "PUT",
+            expects: 200,
+            query: query
+          };
         }
       };
       if (this.asana.params.scheme === "https") {
@@ -966,12 +1007,18 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
     Asana.prototype.sync = function(method, model, opts) {
       var error, expects, headers, http_opts, options, params, query, req, success, url;
       if (opts == null) opts = {};
-      params = model.asana[method]();
+      params = model.asana[method](model);
       url = typeof this.url === "function" ? this.url() : this.url;
       expects = params.expects || 200;
-      query = params.query;
       error = opts.error || function() {};
       success = opts.success || function() {};
+      if (method === "GET") {
+        query = void 0;
+      } else {
+        query = {
+          data: params.query || {}
+        };
+      }
       options = defaults(this.asana.params.options, opts.asana);
       headers = {
         "Accept": "application/json",
@@ -995,8 +1042,8 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
       }
       if (query != null) {
         query = JSON.stringify(query);
-        opts.headers["Content-Type"] = "application/json";
-        opts.headers["Content-Length"] = query.length;
+        http_opts.headers["Content-Type"] = "application/json";
+        http_opts.headers["Content-Length"] = query.length;
       }
       req = this.asana.http.request(http_opts, function(res) {
         var data;

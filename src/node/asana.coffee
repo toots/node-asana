@@ -1,4 +1,4 @@
-{b64,defaults,
+{b64,defaults,clone,
  querystringify,
  isEmpty}        = require "./utils"
 Backbone         = require "backbone"
@@ -15,12 +15,20 @@ class Asana
         options  : opts.options  || {}
 
       # Backbone
-      Backbone   : opts.Backbone || Backbone
+      Backbone: opts.Backbone || Backbone
 
       # Default methods
-      read : ->
+      read: ->
         method  : "GET"
         expects : 200
+
+      update: (model) ->
+        query = clone model.attributes
+        delete query.id
+
+        method  : "PUT"
+        expects : 200
+        query   : query
 
     # For browserify..
     if @asana.params.scheme == "https"
@@ -38,13 +46,17 @@ class Asana
     @user.url = "/users/me"
 
   sync: (method, model, opts = {}) ->
-    params  = model.asana[method]()
+    params  = model.asana[method] model
 
     url    = if typeof @url == "function" then @url() else @url
     expects = params.expects || 200
-    query   = params.query
-    error   = opts.error   || ->
-    success = opts.success || ->
+    error   = opts.error     || ->
+    success = opts.success   || ->
+
+    if method == "GET"
+      query = undefined
+    else
+      query = data: params.query || {}
 
     # Get options but remove error and success..
     options = defaults @asana.params.options, opts.asana
@@ -71,8 +83,8 @@ class Asana
     if query?
       query = JSON.stringify query
 
-      opts.headers["Content-Type"]   = "application/json"
-      opts.headers["Content-Length"] = query.length
+      http_opts.headers["Content-Type"]   = "application/json"
+      http_opts.headers["Content-Length"] = query.length
 
     req = @asana.http.request http_opts, (res) ->
       data = ""

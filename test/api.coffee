@@ -13,19 +13,41 @@ testObject = (name, object, opts, fn) ->
       opts = {}
 
   opts.success = ->
-      console.log "#{name}:"
-      console.dir object.toJSON()
+    console.log "#{name}:"
+    console.dir object.toJSON()
 
-      fn()
+    fn()
 
   opts.error = (model, err) ->
-      console.log "Error while fetching #{name}:"
-      console.dir err
+    console.log "Error while fetching #{name}:"
+    console.dir err
 
   object.fetch opts
 
-module.exports = (key, workspace) ->
-  {user, Users, Workspaces}= new Asana
+saveObject = (name, object, opts, fn) ->
+  if typeof opts == "object"
+    fn = fn || ->
+  else
+    unless fn?
+      fn   = opts || ->
+      opts = {}
+
+  opts.success = ->
+    console.log "#{name} Saved:"
+    console.dir object.toJSON()
+
+    fn()
+
+  opts.error = (model, err) ->
+    console.log "Error while save #{name}:"
+    console.dir err
+
+  object.save null, opts
+
+module.exports = (key, workspaceID) ->
+  {user, Users, 
+    Workspaces,
+    Workspace}  = new Asana
     key : key
 
   testObject "my user", user
@@ -59,3 +81,12 @@ module.exports = (key, workspace) ->
                 story = task.stories.models[0]
 
                 testObject "one story", story
+
+
+  workspace = new Workspace
+    id : workspaceID
+
+  testObject "Test workspace", workspace, ->
+    workspace.set name: "Updated test workspace"
+
+    saveObject "Test workspace", workspace

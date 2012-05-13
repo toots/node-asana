@@ -22,10 +22,10 @@ task 'build', 'Compile coffee scripts into plain Javascript files', ->
     console.log "Done!"
 
 task 'test', 'Run the tests', (args) ->
-  key = args.key || process.env["ASANA_KEY"]
-  app = args.app || process.env["ASANA_WORKSPACE"]
+  key       = args.key       || process.env["ASANA_KEY"]
+  workspace = args.workspace || process.env["ASANA_WORKSPACE"]
 
   build ->
     exec "rm -rf tmp && mkdir tmp && cp src/node/*.coffee test/*.coffee tmp", ->
-      require("./tmp/api")(key, app)
+      require("./tmp/api")(key, workspace)
 
