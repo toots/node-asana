@@ -5,8 +5,17 @@ console.dir = ->
   console.log.apply this, (inspect(value, false, 3) for value in arguments)
 
 module.exports = (key, workspace) ->
-  {Users, Workspaces}= new Asana
+  {user, Users, Workspaces}= new Asana
     key : key
+
+  user.fetch
+    success: ->
+      console.log "My user:"
+      console.dir user.toJSON()
+
+    error: (model, err) ->
+      console.log "Error while fetching my user:"
+      console.dir err
 
   users = new Users
 

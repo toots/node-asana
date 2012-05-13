@@ -857,14 +857,23 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
   };
 
   module.exports = function(key, workspace) {
-    var Users, Workspaces, users, workspaces, _ref;
+    var Users, Workspaces, user, users, workspaces, _ref;
     _ref = new Asana({
       key: key
-    }), Users = _ref.Users, Workspaces = _ref.Workspaces;
+    }), user = _ref.user, Users = _ref.Users, Workspaces = _ref.Workspaces;
+    user.fetch({
+      success: function() {
+        console.log("My user:");
+        return console.dir(user.toJSON());
+      },
+      error: function(model, err) {
+        console.log("Error while fetching my user:");
+        return console.dir(err);
+      }
+    });
     users = new Users;
     users.fetch({
       success: function() {
-        var user;
         console.log("Asana users:");
         console.dir(users.toJSON());
         if (!(users.models.length > 0)) return;
@@ -940,6 +949,8 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
         this.asana.params.port = opts.port || 80;
       }
       addObjects(this);
+      this.user = new this.User;
+      this.user.url = "/users/me";
     }
 
     Asana.prototype.sync = function(method, model, opts) {

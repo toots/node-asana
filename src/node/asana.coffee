@@ -29,6 +29,10 @@ class module.exports.Asana
     # Add models and collections
     addObjects this
 
+    # Add myself
+    @user     = new @User
+    @user.url = "/users/me"
+
   sync: (method, model, opts = {}) ->
     params  = model.asana[method]()
 
