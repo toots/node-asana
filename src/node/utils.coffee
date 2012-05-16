@@ -1,3 +1,4 @@
+_               = require "underscore"
 {fromByteArray} = require "base64-js"
 
 utf8ToBytes = (str) ->
@@ -16,21 +17,10 @@ utf8ToBytes = (str) ->
 module.exports.b64 = (str) ->
   fromByteArray utf8ToBytes(str)
 
-module.exports.clone = clone = (src) ->
-  dst = {}
+fold = (src, dst, fn) ->
+  _.reduce src, fn, dst
 
-  for key, value of src
-    continue unless value?
-
-    if typeof value == "object"
-      if value instanceof Array
-        value = value.slice()
-      else
-        value = clone(value)
-
-    dst[key] = value
-
-  dst
+module.exports.clone = clone = _.clone
 
 module.exports.defaults = (defaults, src = {}) ->
   res = clone defaults
@@ -41,30 +31,30 @@ module.exports.defaults = (defaults, src = {}) ->
   res
 
 module.exports.idify = idify = (src) ->
-  return src unless typeof src == "object"
+  return src unless src? and typeof src == "object"
 
   return src.id if src.id?
 
-  for key, value of src
-    continue unless typeof value == "object"
+  if src instanceof Array
+    return (idify element for element in src)
 
-    if value instanceof Array
-      res = []
-      for element in value
-        res.push idify(element)
+  fold src, {}, (cur, value, key) ->
+    cur[key] = idify value
+    return cur
 
-      src[key] = res
-    else
-      src[key] = idify value
+module.exports.attributify = attributify = (src) ->
+  return src unless src? and typeof src == "object"
 
-  src
+  return src.attributes if src.attributes?
 
-# For objects only!
-module.exports.isEmpty = (obj) ->
-  for key of obj
-    return false
+  if src instanceof Array
+    return (attributify element for element in src)
 
-  true
+  fold src, {}, (cur, value, key) ->
+    cur[key] = attributify value
+    return cur
+
+module.exports.isEmpty = _.isEmpty
 
 # I/O options are prefixed by "opt_"
 # in GET mode. "method" option is not

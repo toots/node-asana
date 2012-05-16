@@ -12,11 +12,7 @@ testObject = (name, object, opts, fn) ->
       fn   = opts || ->
       opts = {}
 
-  opts.success = ->
-    console.log "#{name}:"
-    console.dir object.toJSON()
-
-    fn()
+  opts.success = fn
 
   opts.error = (model, err) ->
     console.log "Error while fetching #{name}:"
@@ -32,11 +28,7 @@ saveObject = (name, object, opts, fn) ->
       fn   = opts || ->
       opts = {}
 
-  opts.success = ->
-    console.log "#{name} Saved:"
-    console.dir object.toJSON()
-
-    fn()
+  opts.success = fn
 
   opts.error = (model, err) ->
     console.log "Error while save #{name}:"

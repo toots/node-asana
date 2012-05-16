@@ -13,4 +13,5 @@ $ ->
   console.log "ready!"
   $("#run").click ->
     key = $("#key").val()
-    require("./api") key
+    key = $("#workspace").val()
+    require("./api") key, workspace

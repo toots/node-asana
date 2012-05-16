@@ -1,9 +1,12 @@
-{clone} = require "./utils"
+{attributify, clone} = require "./utils"
 
 module.exports = (src) ->
   class Model extends src.asana.Backbone.Model
     asana : src.asana
     sync  : src.sync
+
+    set: (attr, val, options) ->
+      super attributify(attr), attributify(val), options
 
   class Collection extends src.asana.Backbone.Collection
     asana : src.asana
