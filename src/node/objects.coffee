@@ -22,6 +22,20 @@ module.exports = (src) ->
   class src.Story extends Model
     urlRoot: "/stories"
 
+    initialize: ->
+      @asana = clone @asana
+      @asana.savedAttributes = (method, model) ->
+        res = clone model.attributes
+        delete res.id
+        delete res.created_at
+        delete res.created_by
+        delete res.text unless method == "POST"
+        delete res.target
+        delete res.source
+        delete res.type
+
+        res
+
   class src.Stories extends Collection
     url   : "/stories"
     model : src.Story
@@ -44,8 +58,12 @@ module.exports = (src) ->
         res
 
       @stories      = new src.Stories
+      id = @id
       @stories.url  = =>
-        "/tasks/#{@id}/stories"
+        "/tasks/#{id}/stories"
+
+      class this.Story extends src.Story
+        url: "/tasks/#{id}/stories"
 
       @projects     = new src.Projects
       @projects.url = =>
@@ -59,6 +77,17 @@ module.exports = (src) ->
     urlRoot: "/projects"
 
     initialize: ->
+      @asana = clone @asana
+      @asana.savedAttributes = (method, model) ->
+        res = clone model.attributes
+        delete res.id
+        delete res.created_at
+        delete res.followers unless method == "POST"
+        delete res.modified_at
+        delete res.workspace unless method == "POST"
+
+        res
+
       @tasks     = new src.Tasks
       @tasks.url = =>
         "/projects/#{@id}/tasks"
