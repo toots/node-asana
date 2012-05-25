@@ -33,7 +33,7 @@ users.fetch
 
         task = new asana.Task
           assignee  : users.find (user) ->
-            users.name == "John Difool"
+            user.get("name") == "John Difool"
           followers : [user]
           name      : "Protect the Incal"
           workspace : workspace
