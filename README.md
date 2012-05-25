@@ -11,7 +11,7 @@ Usage
 =====
 
 ```
-Asana = require "./asana"
+Asana = require "asana"
 
 asana = new Asana
   key : "deadbeef"
