@@ -949,6 +949,11 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
         workspace: workspace
       });
       return saveObject("new task", task, function() {
+        var story;
+        story = new task.Story({
+          text: "New story"
+        });
+        saveObject("new story", story);
         task.set({
           completed: true
         });
@@ -3953,7 +3958,7 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
       Task.prototype.urlRoot = "/tasks";
 
       Task.prototype.initialize = function() {
-        var id;
+        var self;
         var _this = this;
         this.asana = clone(this.asana);
         this.asana.savedAttributes = function(method, model) {
@@ -3969,9 +3974,9 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
           return res;
         };
         this.stories = new src.Stories;
-        id = this.id;
+        self = this;
         this.stories.url = function() {
-          return "/tasks/" + id + "/stories";
+          return "/tasks/" + (self.get("id")) + "/stories";
         };
         this.Story = (function() {
 
@@ -3981,7 +3986,9 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
             Story.__super__.constructor.apply(this, arguments);
           }
 
-          Story.prototype.url = "/tasks/" + id + "/stories";
+          Story.prototype.url = function() {
+            return "/tasks/" + (self.get("id")) + "/stories";
+          };
 
           return Story;
 

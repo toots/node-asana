@@ -92,6 +92,11 @@ runTests = (asana, workspaceID) ->
       workspace : workspace
 
     saveObject "new task", task, ->
+      story = new task.Story
+        text : "New story"
+       
+      saveObject "new story", story
+
       task.set completed: true
 
       saveObject "new task", task

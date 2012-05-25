@@ -58,12 +58,12 @@ module.exports = (src) ->
         res
 
       @stories      = new src.Stories
-      id = @id
+      self = this
       @stories.url  = =>
-        "/tasks/#{id}/stories"
+        "/tasks/#{self.get("id")}/stories"
 
       class this.Story extends src.Story
-        url: "/tasks/#{id}/stories"
+        url: -> "/tasks/#{self.get("id")}/stories"
 
       @projects     = new src.Projects
       @projects.url = =>
