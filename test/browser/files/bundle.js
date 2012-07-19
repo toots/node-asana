@@ -3835,7 +3835,9 @@ require.define("/node_modules/backbone/backbone.js", function (require, module, 
 require.define("/objects.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
   var attributify, clone, _ref;
-  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+  var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
+
+  require("backbone.modelizer");
 
   _ref = require("./utils"), attributify = _ref.attributify, clone = _ref.clone;
 
@@ -3896,7 +3898,13 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
         Users.__super__.constructor.apply(this, arguments);
       }
 
-      Users.prototype.url = "/users";
+      Users.prototype.url = function() {
+        if (this.workspace != null) {
+          return "/workspaces/" + this.workspace.id + "/users";
+        } else {
+          return "/users";
+        }
+      };
 
       Users.prototype.model = src.User;
 
@@ -3940,7 +3948,13 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
         Stories.__super__.constructor.apply(this, arguments);
       }
 
-      Stories.prototype.url = "/stories";
+      Stories.prototype.url = function() {
+        if (this.task != null) {
+          return "/tasks/" + this.task.id + "/stories";
+        } else {
+          return "/stories";
+        }
+      };
 
       Stories.prototype.model = src.Story;
 
@@ -3959,7 +3973,6 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
 
       Task.prototype.initialize = function() {
         var self;
-        var _this = this;
         this.asana = clone(this.asana);
         this.asana.savedAttributes = function(method, model) {
           var res;
@@ -3970,32 +3983,39 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
           if (method !== "POST") delete res.followers;
           delete res.modified_at;
           delete res.projects;
+          delete res.tags;
           if (method !== "POST") delete res.workspace;
           return res;
         };
-        this.stories = new src.Stories;
         self = this;
-        this.stories.url = function() {
-          return "/tasks/" + (self.get("id")) + "/stories";
-        };
-        this.Story = (function() {
+        return this.Story = (function() {
 
           __extends(Story, src.Story);
 
           function Story() {
+            this.url = __bind(this.url, this);
             Story.__super__.constructor.apply(this, arguments);
           }
 
           Story.prototype.url = function() {
-            return "/tasks/" + (self.get("id")) + "/stories";
+            return "/tasks/" + self.id + "/stories";
           };
 
           return Story;
 
         })();
-        this.projects = new src.Projects;
-        return this.projects.url = function() {
-          return "/tasks/" + _this.id + "/projects";
+      };
+
+      Task.prototype.associations = function() {
+        return {
+          stories: {
+            collection: src.Stories,
+            scope: "task"
+          },
+          projects: {
+            collection: src.Projects,
+            scope: "task"
+          }
         };
       };
 
@@ -4010,7 +4030,15 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
         Tasks.__super__.constructor.apply(this, arguments);
       }
 
-      Tasks.prototype.url = "/tasks";
+      Tasks.prototype.url = function() {
+        if (this.workspace != null) {
+          return "/workspaces/" + this.workspace.id + "/tasks";
+        } else if (this.project != null) {
+          return "/projects/" + this.project.id + "/tasks";
+        } else {
+          return "/tasks";
+        }
+      };
 
       Tasks.prototype.model = src.Task;
 
@@ -4028,9 +4056,8 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
       Project.prototype.urlRoot = "/projects";
 
       Project.prototype.initialize = function() {
-        var _this = this;
         this.asana = clone(this.asana);
-        this.asana.savedAttributes = function(method, model) {
+        return this.asana.savedAttributes = function(method, model) {
           var res;
           res = clone(model.attributes);
           delete res.id;
@@ -4040,9 +4067,14 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
           if (method !== "POST") delete res.workspace;
           return res;
         };
-        this.tasks = new src.Tasks;
-        return this.tasks.url = function() {
-          return "/projects/" + _this.id + "/tasks";
+      };
+
+      Project.prototype.associations = function() {
+        return {
+          tasks: {
+            collection: src.Tasks,
+            scope: "project"
+          }
         };
       };
 
@@ -4057,7 +4089,15 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
         Projects.__super__.constructor.apply(this, arguments);
       }
 
-      Projects.prototype.url = "/projects";
+      Projects.prototype.url = function() {
+        if (this.task != null) {
+          return "/tasks/" + this.task.id + "/projects";
+        } else if (this.workspace != null) {
+          return "/workspaces/" + this.workspace.id + "/projects";
+        } else {
+          return "/projects";
+        }
+      };
 
       Projects.prototype.model = src.Project;
 
@@ -4074,19 +4114,20 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
 
       Workspace.prototype.urlRoot = "/workspaces";
 
-      Workspace.prototype.initialize = function() {
-        var _this = this;
-        this.users = new src.Users;
-        this.users.url = function() {
-          return "/workspaces/" + _this.id + "/users";
-        };
-        this.tasks = new src.Tasks;
-        this.tasks.url = function() {
-          return "/workspaces/" + _this.id + "/tasks";
-        };
-        this.projects = new src.Projects;
-        return this.projects.url = function() {
-          return "/workspaces/" + _this.id + "/projects";
+      Workspace.prototype.associations = function() {
+        return {
+          users: {
+            collection: src.Users,
+            scope: "workspace"
+          },
+          tasks: {
+            collection: src.Tasks,
+            scope: "workspace"
+          },
+          projects: {
+            collection: src.Projects,
+            scope: "workspace"
+          }
         };
       };
 
@@ -4109,6 +4150,219 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
 
     })();
   };
+
+}).call(this);
+
+});
+
+require.define("/node_modules/backbone.modelizer/package.json", function (require, module, exports, __dirname, __filename) {
+module.exports = {"main":"backbone.modelizer.js"}
+});
+
+require.define("/node_modules/backbone.modelizer/backbone.modelizer.js", function (require, module, exports, __dirname, __filename) {
+// Generated by CoffeeScript 1.3.1
+(function() {
+  var Backbone, _,
+    __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
+    __hasProp = {}.hasOwnProperty,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
+
+  if (typeof require !== "undefined" && require !== null) {
+    Backbone = require("backbone");
+    _ = require("underscore");
+  } else {
+    Backbone = window.Backbone;
+    _ = window._;
+  }
+
+  Backbone.IdentityMap = {
+    kinds: {},
+    maps: {},
+    "for": function(kind) {
+      var id, _base;
+      id = null;
+      _.any(this.kinds, function(value, key) {
+        if (value === kind) {
+          id = key;
+          return true;
+        }
+      });
+      if (id == null) {
+        this.kinds[id = _.uniqueId("___identity_map")] = kind;
+      }
+      return (_base = this.maps)[id] || (_base[id] = {});
+    },
+    retrieve: function(kind, id) {
+      var map;
+      map = this["for"](kind);
+      return map[id];
+    },
+    store: function(kind, id, obj) {
+      var map;
+      map = this["for"](kind);
+      if ((map[id] != null) && map[id] !== obj) {
+        throw new Error("Model already cached!");
+      }
+      return map[id] = obj;
+    },
+    gc: function() {
+      return _.each(this.maps, function(map) {
+        return _.each(map, function(obj, key) {
+          if (obj.refCount === 0) {
+            return delete map[key];
+          }
+        });
+      });
+    }
+  };
+
+  Backbone.Model = (function(_super) {
+
+    __extends(Model, _super);
+
+    Model.name = 'Model';
+
+    function Model(attributes) {
+      this.modelize = __bind(this.modelize, this);
+
+      var cached;
+      if (_.isNumber(attributes)) {
+        attributes = {
+          id: attributes
+        };
+      }
+      if ((attributes != null ? attributes.id : void 0) != null) {
+        cached = Backbone.IdentityMap.retrieve(this.constructor, attributes.id);
+        if (cached != null) {
+          if (_.keys(attributes).length > 1) {
+            cached.set(attributes);
+          }
+          return cached;
+        }
+        Backbone.IdentityMap.store(this.constructor, attributes.id, this);
+      }
+      Model.__super__.constructor.call(this, attributes);
+    }
+
+    Model.prototype.modelize = function(attributes) {
+      var associations,
+        _this = this;
+      if (attributes == null) {
+        attributes = {};
+      }
+      if (_.isFunction(this.associations)) {
+        associations = this.associations();
+      } else {
+        associations = this.associations;
+      }
+      if (_.isEmpty(associations)) {
+        return;
+      }
+      return _.each(associations, function(association, name) {
+        var collection, constructor, obj, self;
+        if (association.model != null) {
+          obj = attributes[name];
+          if (obj instanceof Backbone.Model) {
+            obj = obj.attributes;
+          }
+          if (_.isNumber(obj)) {
+            obj = {
+              id: obj
+            };
+          }
+          if ((_this[name] != null) && _this[name].id === (obj != null ? obj.id : void 0)) {
+            _this[name].set(obj);
+          } else {
+            if (!(_this[name] != null) || ((obj != null ? obj.id : void 0) != null)) {
+              _this[name] = new association.model(obj);
+            }
+          }
+          return attributes[name] = _this[name].id;
+        } else {
+          collection = attributes[name];
+          if (collection instanceof Backbone.Collection) {
+            collection = collection.models;
+          }
+          if (_this[name] != null) {
+            if (_.isArray(collection)) {
+              _this[name].reset(collection);
+            }
+          } else {
+            self = _this;
+            constructor = (function(_super1) {
+
+              __extends(constructor, _super1);
+
+              constructor.name = 'constructor';
+
+              function constructor() {
+                if (association.url != null) {
+                  this.url = association.url;
+                }
+                if (association.scope != null) {
+                  this[association.scope] = self;
+                }
+                constructor.__super__.constructor.apply(this, arguments);
+              }
+
+              return constructor;
+
+            })(association.collection);
+            _this[name] = new constructor(collection);
+          }
+          if (collection != null) {
+            return attributes[name] = _.compact(_.map(collection, function(el) {
+              if (_.isNumber(el)) {
+                return el;
+              }
+              return el.id;
+            }));
+          }
+        }
+      });
+    };
+
+    Model.prototype.refCount = 0;
+
+    Model.prototype.retain = function() {
+      ++this.refCount;
+      return this;
+    };
+
+    Model.prototype.release = function() {
+      --this.refCount;
+      return this;
+    };
+
+    Model.prototype.url = function() {
+      var base, sep;
+      base = _.isFunction(this.urlRoot) ? this.urlRoot() : this.urlRoot;
+      if (base == null) {
+        throw new Error('A "urlRoot" property or function must be specified');
+      }
+      if (this.isNew()) {
+        return base;
+      }
+      sep = base.charAt(base.length - 1) === "/" ? "" : "/";
+      return "" + base + sep + (encodeURIComponent(this.id));
+    };
+
+    Model.prototype.set = function(key, value, options) {
+      var attributes;
+      if (_.isObject(key) || key === null) {
+        attributes = key;
+        options = value;
+      } else {
+        attributes = {};
+        attributes[key] = value;
+      }
+      this.modelize(attributes);
+      return Model.__super__.set.call(this, attributes, options);
+    };
+
+    return Model;
+
+  })(Backbone.Model);
 
 }).call(this);
 

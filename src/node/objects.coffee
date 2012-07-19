@@ -1,3 +1,4 @@
+require "backbone.modelizer"
 {attributify, clone} = require "./utils"
 
 module.exports = (src) ->
@@ -16,7 +17,11 @@ module.exports = (src) ->
     urlRoot: "/users"
 
   class src.Users extends Collection
-    url   : "/users"
+    url   : ->
+      if @workspace?
+        "/workspaces/#{@workspace.id}/users"
+      else
+        "/users"
     model : src.User
 
   class src.Story extends Model
@@ -37,7 +42,11 @@ module.exports = (src) ->
         res
 
   class src.Stories extends Collection
-    url   : "/stories"
+    url   : ->
+      if @task?
+        "/tasks/#{@task.id}/stories"
+      else
+        "/stories"
     model : src.Story
 
   class src.Task extends Model
@@ -53,24 +62,32 @@ module.exports = (src) ->
         delete res.followers unless method == "POST"
         delete res.modified_at
         delete res.projects
+        delete res.tags
         delete res.workspace unless method == "POST"
 
         res
 
-      @stories      = new src.Stories
       self = this
-      @stories.url  = =>
-        "/tasks/#{self.get("id")}/stories"
 
       class this.Story extends src.Story
-        url: -> "/tasks/#{self.get("id")}/stories"
+        url: => "/tasks/#{self.id}/stories"
 
-      @projects     = new src.Projects
-      @projects.url = =>
-        "/tasks/#{@id}/projects"
+    associations: ->
+      stories:
+        collection: src.Stories
+        scope:      "task"
+      projects:
+        collection: src.Projects
+        scope:      "task"
 
   class src.Tasks extends Collection
-    url   : "/tasks"
+    url   : ->
+      if @workspace?
+        "/workspaces/#{@workspace.id}/tasks"
+      else if @project?
+        "/projects/#{@project.id}/tasks"
+      else
+        "/tasks"
     model : src.Task
 
   class src.Project extends Model
@@ -88,29 +105,34 @@ module.exports = (src) ->
 
         res
 
-      @tasks     = new src.Tasks
-      @tasks.url = =>
-        "/projects/#{@id}/tasks"
+    associations: ->
+      tasks:
+        collection: src.Tasks
+        scope:      "project"
 
   class src.Projects extends Collection
-    url   : "/projects"
+    url   : ->
+      if @task?
+        "/tasks/#{@task.id}/projects"
+      else if @workspace?
+        "/workspaces/#{@workspace.id}/projects"
+      else
+        "/projects"
     model : src.Project
 
   class src.Workspace extends Model
     urlRoot: "/workspaces"
 
-    initialize: ->
-      @users     = new src.Users
-      @users.url = =>
-        "/workspaces/#{@id}/users"
-
-      @tasks     = new src.Tasks
-      @tasks.url = =>
-        "/workspaces/#{@id}/tasks"
-
-      @projects     = new src.Projects
-      @projects.url = =>
-        "/workspaces/#{@id}/projects"
+    associations: ->
+      users:
+        collection: src.Users
+        scope:      "workspace"
+      tasks:
+        collection: src.Tasks
+        scope:      "workspace"
+      projects:
+        collection: src.Projects
+        scope:      "workspace"
 
   class src.Workspaces extends Collection
     url   : "/workspaces"

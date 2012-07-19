@@ -72,7 +72,6 @@ runTests = (asana, workspaceID) ->
 
                 testObject "one story", story
 
-
   workspace = new Workspace
     id : workspaceID
 
