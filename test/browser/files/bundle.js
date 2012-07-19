@@ -1118,7 +1118,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
 
 require.define("/utils.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var clone, fold, fromByteArray, ioOptions, optName, utf8ToBytes, _;
+  var clone, fromByteArray, ioOptions, optName, utf8ToBytes, _;
 
   _ = require("underscore");
 
@@ -1142,10 +1142,6 @@ require.define("/utils.coffee", function (require, module, exports, __dirname, _
 
   module.exports.b64 = function(str) {
     return fromByteArray(utf8ToBytes(str));
-  };
-
-  fold = function(src, dst, fn) {
-    return _.reduce(src, fn, dst);
   };
 
   module.exports.clone = clone = _.clone;
@@ -3971,10 +3967,6 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
           },
           workspace: {
             model: src.Workspace
-          },
-          workspaces: {
-            collection: src.Workspaces,
-            scope: "task"
           },
           stories: {
             collection: src.Stories,

@@ -17,9 +17,6 @@ utf8ToBytes = (str) ->
 module.exports.b64 = (str) ->
   fromByteArray utf8ToBytes(str)
 
-fold = (src, dst, fn) ->
-  _.reduce src, fn, dst
-
 module.exports.clone = clone = _.clone
 
 module.exports.defaults = (defaults, src = {}) ->
