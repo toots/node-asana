@@ -1,5 +1,5 @@
 {b64,defaults,clone,
- idify,querystringify,
+ querystringify,
  isEmpty}        = require "./utils"
 Backbone         = require "backbone"
 addObjects       = require "./objects"
@@ -33,13 +33,13 @@ class Asana
         method  : "PUT"
         expects : 200
         query   :
-          idify model.asana.savedAttributes("PUT", model)
+          model.asana.savedAttributes("PUT", model)
 
       create: (model) ->
         method  : "POST"
         expects : 201
         query   :
-          idify model.asana.savedAttributes("POST", model)
+          model.asana.savedAttributes("POST", model)
 
     # For browserify..
     if @asana.params.scheme == "https"

@@ -30,30 +30,6 @@ module.exports.defaults = (defaults, src = {}) ->
 
   res
 
-module.exports.idify = idify = (src) ->
-  return src unless src? and typeof src == "object"
-
-  return src.id if src.id?
-
-  if src instanceof Array
-    return (idify element for element in src)
-
-  fold src, {}, (cur, value, key) ->
-    cur[key] = idify value
-    return cur
-
-module.exports.attributify = attributify = (src) ->
-  return src unless src? and typeof src == "object"
-
-  return src.attributes if src.attributes?
-
-  if src instanceof Array
-    return (attributify element for element in src)
-
-  fold src, {}, (cur, value, key) ->
-    cur[key] = attributify value
-    return cur
-
 module.exports.isEmpty = _.isEmpty
 
 # I/O options are prefixed by "opt_"

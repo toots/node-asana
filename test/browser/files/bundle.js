@@ -978,9 +978,9 @@ require.define("/api.coffee", function (require, module, exports, __dirname, __f
 
 require.define("/asana.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var Asana, Backbone, addObjects, b64, clone, defaults, idify, isEmpty, querystringify, _ref;
+  var Asana, Backbone, addObjects, b64, clone, defaults, isEmpty, querystringify, _ref;
 
-  _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, clone = _ref.clone, idify = _ref.idify, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
+  _ref = require("./utils"), b64 = _ref.b64, defaults = _ref.defaults, clone = _ref.clone, querystringify = _ref.querystringify, isEmpty = _ref.isEmpty;
 
   Backbone = require("backbone");
 
@@ -1014,14 +1014,14 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
           return {
             method: "PUT",
             expects: 200,
-            query: idify(model.asana.savedAttributes("PUT", model))
+            query: model.asana.savedAttributes("PUT", model)
           };
         },
         create: function(model) {
           return {
             method: "POST",
             expects: 201,
-            query: idify(model.asana.savedAttributes("POST", model))
+            query: model.asana.savedAttributes("POST", model)
           };
         }
       };
@@ -1118,7 +1118,7 @@ require.define("/asana.coffee", function (require, module, exports, __dirname, _
 
 require.define("/utils.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var attributify, clone, fold, fromByteArray, idify, ioOptions, optName, utf8ToBytes, _;
+  var clone, fold, fromByteArray, ioOptions, optName, utf8ToBytes, _;
 
   _ = require("underscore");
 
@@ -1159,48 +1159,6 @@ require.define("/utils.coffee", function (require, module, exports, __dirname, _
       res[key] = value;
     }
     return res;
-  };
-
-  module.exports.idify = idify = function(src) {
-    var element;
-    if (!((src != null) && typeof src === "object")) return src;
-    if (src.id != null) return src.id;
-    if (src instanceof Array) {
-      return (function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = src.length; _i < _len; _i++) {
-          element = src[_i];
-          _results.push(idify(element));
-        }
-        return _results;
-      })();
-    }
-    return fold(src, {}, function(cur, value, key) {
-      cur[key] = idify(value);
-      return cur;
-    });
-  };
-
-  module.exports.attributify = attributify = function(src) {
-    var element;
-    if (!((src != null) && typeof src === "object")) return src;
-    if (src.attributes != null) return src.attributes;
-    if (src instanceof Array) {
-      return (function() {
-        var _i, _len, _results;
-        _results = [];
-        for (_i = 0, _len = src.length; _i < _len; _i++) {
-          element = src[_i];
-          _results.push(attributify(element));
-        }
-        return _results;
-      })();
-    }
-    return fold(src, {}, function(cur, value, key) {
-      cur[key] = attributify(value);
-      return cur;
-    });
   };
 
   module.exports.isEmpty = _.isEmpty;
@@ -3834,12 +3792,12 @@ require.define("/node_modules/backbone/backbone.js", function (require, module, 
 
 require.define("/objects.coffee", function (require, module, exports, __dirname, __filename) {
 (function() {
-  var attributify, clone, _ref;
+  var clone;
   var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; }, __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
   require("backbone.modelizer");
 
-  _ref = require("./utils"), attributify = _ref.attributify, clone = _ref.clone;
+  clone = require("./utils").clone;
 
   module.exports = function(src) {
     var Collection, Model;
@@ -3854,10 +3812,6 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
       Model.prototype.asana = src.asana;
 
       Model.prototype.sync = src.sync;
-
-      Model.prototype.set = function(attr, val, options) {
-        return Model.__super__.set.call(this, attributify(attr), attributify(val), options);
-      };
 
       return Model;
 
@@ -4008,6 +3962,20 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
 
       Task.prototype.associations = function() {
         return {
+          assignee: {
+            model: src.User
+          },
+          followers: {
+            collection: src.Users,
+            scope: "followers"
+          },
+          workspace: {
+            model: src.Workspace
+          },
+          workspaces: {
+            collection: src.Workspaces,
+            scope: "task"
+          },
           stories: {
             collection: src.Stories,
             scope: "task"
@@ -4071,6 +4039,9 @@ require.define("/objects.coffee", function (require, module, exports, __dirname,
 
       Project.prototype.associations = function() {
         return {
+          workspace: {
+            model: src.Workspace
+          },
           tasks: {
             collection: src.Tasks,
             scope: "project"

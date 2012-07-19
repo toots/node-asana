@@ -1,13 +1,10 @@
 require "backbone.modelizer"
-{attributify, clone} = require "./utils"
+{clone} = require "./utils"
 
 module.exports = (src) ->
   class Model extends src.asana.Backbone.Model
     asana : src.asana
     sync  : src.sync
-
-    set: (attr, val, options) ->
-      super attributify(attr), attributify(val), options
 
   class Collection extends src.asana.Backbone.Collection
     asana : src.asana
@@ -73,6 +70,13 @@ module.exports = (src) ->
         url: => "/tasks/#{self.id}/stories"
 
     associations: ->
+      assignee:
+        model: src.User
+      followers:
+        collection: src.Users
+        scope:      "followers"
+      workspace:
+        model: src.Workspace
       stories:
         collection: src.Stories
         scope:      "task"
@@ -106,6 +110,8 @@ module.exports = (src) ->
         res
 
     associations: ->
+      workspace:
+        model: src.Workspace
       tasks:
         collection: src.Tasks
         scope:      "project"

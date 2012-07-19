@@ -50,6 +50,7 @@ Get the facts!
 * All asana items are [backbone](http://documentcloud.github.com/backbone/) models.
   You can fetch and save them as is usually done with backbone models. However, asana
   API does not allow to create or save some items.
+* Backbone models support ID map and modelize as provided by [backbone.modelizer](https://github.com/audiosocket/backbone.modelizer)
 * All asana attributes are stored as model attributes. Creation arguments are those
   documented in the Asana API.
 * It is possible to pass models or IDs as attributes values. 
@@ -61,12 +62,15 @@ Get the facts!
         * `asna.Workspace` : Basic model for asana workspaces
         * `asana.Workspaces` : Collection of all asana workspaces
         * `asana.Project` : Basic model for asana projects
+            * `project.workspace` : Workpace for `project`
         * `asana.Projects` : Collection of all asana projects
         * `asana.Task` : Base task model
         * `asana.Tasks` : Collection of available tasks. 
         * `task = new asana.Task params`: 
             * `task.Story` : Basic model to create a new story attached to
                             `task`
+            * `task.assignee` : User assigned to `task`
+            * `task.followers` : Collection of users following `task`
             * `task.stories` : Collection of all stories attached to `task`
             * `task.projects` : Collection of all projects to which `task` belongs
 
